@@ -43,6 +43,7 @@ protobuf_generate(TARGET ad_pipeline
     proto/pipeline/directory_sink_config.proto
     proto/pipeline/tile_filter_config.proto
     proto/pipeline/normalize_filter_config.proto
+    proto/pipeline/zmq_source_config.proto
     proto/pipeline/padding_mode.proto
   IMPORT_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/proto")

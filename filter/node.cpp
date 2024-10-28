@@ -13,6 +13,7 @@
 #include "exception.h"
 #include "normalize_filter.h"
 #include "tile_filter.h"
+#include "zmq_source.h"
 
 namespace {
 
@@ -23,7 +24,7 @@ class NullNode final : public Node {
 
 }  // namespace
 
-auto Node::CreatePipeline(const char* config_path) -> std::unique_ptr<Node> {
+auto Node::CreatePipeline(void* zmq_context, const char* config_path) -> std::unique_ptr<Node> {
   std::ifstream file(config_path);
   if (!file.good()) {
     throw Exception("failed to open file");
@@ -52,6 +53,10 @@ auto Node::CreatePipeline(const char* config_path) -> std::unique_ptr<Node> {
   for (const auto& node_config : config.pipeline()) {
     std::unique_ptr<Node> node;
     switch (node_config.root_case()) {
+      case pipeline::NodeConfig::kZmqSource:
+        SPDLOG_INFO("Building ZMQ source node.");
+        root = ZmqSource::Create(zmq_context, node_config.zmq_source());
+        break;
       case pipeline::NodeConfig::kDirectorySource:
         SPDLOG_INFO("Building directory source node.");
         root = DirectorySource::Create(node_config.directory_source());

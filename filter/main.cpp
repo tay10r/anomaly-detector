@@ -13,7 +13,7 @@ class Program final {
   [[nodiscard]] auto Setup() -> bool {
     zmq_context_ = zmq_ctx_new();
     try {
-      root_ = Node::CreatePipeline("pipeline.json");
+      root_ = Node::CreatePipeline(zmq_context_, "pipeline.json");
     } catch (const Exception& e) {
       SPDLOG_ERROR("Failed to load pipeline: '{}'", e.what());
       return false;

@@ -6,6 +6,7 @@ import "pipeline/directory_source_config.proto";
 import "pipeline/directory_sink_config.proto";
 import "pipeline/tile_filter_config.proto";
 import "pipeline/normalize_filter_config.proto";
+import "pipeline/zmq_source_config.proto";
 
 message NodeConfig
 {
@@ -14,6 +15,7 @@ message NodeConfig
     DirectorySinkConfig directory_sink = 2;
     TileFilterConfig tile_filter = 3;
     NormalizeFilterConfig normalize_filter = 4;
+    ZmqSourceConfig zmq_source = 5;
   }
 }
 

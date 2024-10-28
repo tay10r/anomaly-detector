@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 class Image final {
  public:
@@ -25,6 +26,8 @@ class Image final {
   auto operator=(Image&&) -> Image& = delete;
 
   [[nodiscard]] auto Load(const char* path) -> bool;
+
+  [[nodiscard]] auto LoadFromMemory(const void* data, const std::size_t size) -> bool;
 
   [[nodiscard]] auto Save(const char* path) -> bool;
 

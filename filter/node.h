@@ -60,7 +60,7 @@ struct NodeOutput final {
 
 class Node {
  public:
-  static auto CreatePipeline(const char* config_path) -> std::unique_ptr<Node>;
+  static auto CreatePipeline(void* zmq_context, const char* config_path) -> std::unique_ptr<Node>;
 
   virtual ~Node() = default;
 
