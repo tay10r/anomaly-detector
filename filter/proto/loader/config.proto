@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package loader;
+
+import "loader/directory_config.proto";
+
+message Config
+{
+  oneof root {
+    DirectoryConfig directory = 1;
+  }
+}
