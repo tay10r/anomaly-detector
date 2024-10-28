@@ -1,6 +1,7 @@
 #include <spdlog/spdlog.h>
 #include <zmq.h>
 
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <cxxopts.hpp>
@@ -81,6 +82,11 @@ class Program final {
     SPDLOG_INFO("Bind Address: '{}'", options_.bind_address);
     SPDLOG_INFO("Interval: {}", options_.interval);
     SPDLOG_INFO("Resolution: {}x{}", options_.width, options_.height);
+    if (zmq_bind(zmq_publisher_, options_.bind_address.c_str()) != 0) {
+      SPDLOG_ERROR("Failed to bind to ZMQ address '{}': {}",
+                   options_.bind_address, std::strerror(errno));
+      return false;
+    }
     if (!m_video_device.open(options_.device_index)) {
       SPDLOG_ERROR("Failed to open video device {}", options_.device_index);
       return false;
