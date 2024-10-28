@@ -2,13 +2,16 @@
 #include <zmq.h>
 
 #include <cerrno>
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <cxxopts.hpp>
 #include <iostream>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/videoio.hpp>
+#include <optional>
 #include <string>
+#include <thread>
 
 namespace {
 
@@ -54,6 +57,10 @@ struct Options final {
 
 class Program final {
  public:
+  using clock = std::chrono::high_resolution_clock;
+
+  using time_point = typename clock::time_point;
+
   Program()
       : zmq_context_(zmq_ctx_new()),
         zmq_publisher_(zmq_socket(zmq_context_, ZMQ_PUB)) {
@@ -78,6 +85,11 @@ class Program final {
     if (options_.help) {
       return false;
     }
+    if (options_.interval < 0.0F) {
+      SPDLOG_ERROR("Interval {} is invalid since it is negative.",
+                   options_.interval);
+      return false;
+    }
     SPDLOG_INFO("Device Index: '{}'", options_.device_index);
     SPDLOG_INFO("Bind Address: '{}'", options_.bind_address);
     SPDLOG_INFO("Interval: {}", options_.interval);
@@ -99,16 +111,29 @@ class Program final {
   }
 
   [[nodiscard]] auto NextFrame() -> bool {
-    cv::Mat frame;
+    if (last_timestamp_) {
+      const auto t = clock::now();
 
-    SPDLOG_INFO("Read.");
+      const auto dt = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          t - last_timestamp_.value())
+                          .count();
+      const auto interval_ms = static_cast<int>(options_.interval * 1000);
+      if (dt > interval_ms) {
+        SPDLOG_WARN("Fell {} [ms] behind schedule.", dt - interval_ms);
+      } else if (dt < interval_ms) {
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(interval_ms - dt));
+      }
+    }
+
+    cv::Mat frame;
 
     if (!m_video_device.read(frame)) {
       SPDLOG_ERROR("Failed to read frame from video device.");
       return false;
     }
 
-    SPDLOG_INFO("Done.");
+    last_timestamp_ = clock::now();
 
     std::vector<std::uint8_t> buffer;
 
@@ -140,6 +165,8 @@ class Program final {
   void* zmq_publisher_{};
 
   cv::VideoCapture m_video_device;
+
+  std::optional<time_point> last_timestamp_;
 };
 
 }  // namespace
