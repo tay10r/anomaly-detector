@@ -87,10 +87,12 @@ class Program final {
                    options_.bind_address, std::strerror(errno));
       return false;
     }
+    SPDLOG_INFO("Opening video device.");
     if (!m_video_device.open(options_.device_index)) {
       SPDLOG_ERROR("Failed to open video device {}", options_.device_index);
       return false;
     }
+    SPDLOG_INFO("Video device open.");
     m_video_device.set(cv::CAP_PROP_FRAME_WIDTH, options_.width);
     m_video_device.set(cv::CAP_PROP_FRAME_HEIGHT, options_.height);
     return true;
@@ -99,10 +101,14 @@ class Program final {
   [[nodiscard]] auto NextFrame() -> bool {
     cv::Mat frame;
 
+    SPDLOG_INFO("Read.");
+
     if (!m_video_device.read(frame)) {
       SPDLOG_ERROR("Failed to read frame from video device.");
       return false;
     }
+
+    SPDLOG_INFO("Done.");
 
     std::vector<std::uint8_t> buffer;
 
