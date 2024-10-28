@@ -6,11 +6,11 @@ class Image final {
  public:
   Image() noexcept = default;
 
-  Image(const uint32_t w, const uint32_t h, uint8_t* data) noexcept
-      : width_(w), height_(h), data_(data) {}
+  Image(uint32_t w, uint32_t h) noexcept;
 
-  Image(Image&& other) noexcept
-      : width_(other.width_), height_(other.height_), data_(other.data_) {
+  Image(const uint32_t w, const uint32_t h, uint8_t* data) noexcept : width_(w), height_(h), data_(data) {}
+
+  Image(Image&& other) noexcept : width_(other.width_), height_(other.height_), data_(other.data_) {
     other.width_ = 0;
     other.height_ = 0;
     other.data_ = nullptr;
@@ -26,15 +26,17 @@ class Image final {
 
   [[nodiscard]] auto Load(const char* path) -> bool;
 
+  [[nodiscard]] auto Save(const char* path) -> bool;
+
   [[nodiscard]] auto Data() -> uint8_t* { return data_; }
 
-  [[nodiscard]] auto Width() -> uint32_t { return width_; }
+  [[nodiscard]] auto Data() const -> const uint8_t* { return data_; }
 
-  [[nodiscard]] auto Height() -> uint32_t { return height_; }
+  [[nodiscard]] auto Width() const -> uint32_t { return width_; }
 
-  [[nodiscard]] auto Empty() const -> bool {
-    return (width_ == 0) || (height_ == 0);
-  }
+  [[nodiscard]] auto Height() const -> uint32_t { return height_; }
+
+  [[nodiscard]] auto Empty() const -> bool { return (width_ == 0) || (height_ == 0); }
 
  private:
   uint32_t width_{};

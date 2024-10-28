@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package pipeline;
+
+enum Normalization
+{
+  STANDARD = 0;
+  MIN_MAX = 1;
+}
+
+message NormalizeFilterConfig
+{
+  Normalization kind = 1;
+}

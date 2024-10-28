@@ -1,7 +1,7 @@
 #pragma once
 
-#include "source.h"
+#include "node.h"
 
-class ZmqSource final : public Source {
+class ZmqSource final : public Node {
  public:
 };

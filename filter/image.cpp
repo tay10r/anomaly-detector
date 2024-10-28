@@ -1,6 +1,15 @@
 #include "image.h"
 
 #include <stb_image.h>
+#include <stb_image_write.h>
+
+Image::Image(const uint32_t w, const uint32_t h) noexcept
+    : data_(static_cast<uint8_t*>(std::malloc(w * h * 3))) {
+  if (data_) {
+    width_ = w;
+    height_ = h;
+  }
+}
 
 Image::~Image() {
   if (data_) {
@@ -23,4 +32,8 @@ auto Image::Load(const char* path) -> bool {
   width_ = static_cast<uint32_t>(w);
   height_ = static_cast<uint32_t>(h);
   return true;
+}
+
+auto Image::Save(const char* path) -> bool {
+  return !!stbi_write_png(path, width_, height_, 3, data_, width_ * 3);
 }

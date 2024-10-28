@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package pipeline;
+
+import "pipeline/directory_source_config.proto";
+import "pipeline/directory_sink_config.proto";
+import "pipeline/tile_filter_config.proto";
+import "pipeline/normalize_filter_config.proto";
+
+message NodeConfig
+{
+  oneof root {
+    DirectorySourceConfig directory_source = 1;
+    DirectorySinkConfig directory_sink = 2;
+    TileFilterConfig tile_filter = 3;
+    NormalizeFilterConfig normalize_filter = 4;
+  }
+}
+
+message Config
+{
+  repeated NodeConfig pipeline = 1;
+}

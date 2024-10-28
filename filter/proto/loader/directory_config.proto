@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package loader;
-
-message DirectoryConfig
-{
-  string path = 1;
-}

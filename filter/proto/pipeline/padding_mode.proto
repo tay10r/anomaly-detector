@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package pipeline;
+
+enum PaddingMode
+{
+  /**
+   * Pad with values of zero.
+   */
+  ZEROS = 0;
+
+  /**
+   * Pad with the closest pixel value.
+   */
+  REPLICATE = 1;
+}

@@ -1,14 +1,14 @@
 #pragma once
 
-#include <loader/directory_config.pb.h>
+#include <pipeline/directory_source_config.pb.h>
 
 #include <memory>
 
-#include "source.h"
+#include "node.h"
 
-class DirectorySource : public Source {
+class DirectorySource : public Node {
  public:
-  static auto Create(const loader::DirectoryConfig& cfg)
+  static auto Create(const pipeline::DirectorySourceConfig& cfg)
       -> std::unique_ptr<DirectorySource>;
 
   ~DirectorySource() override = default;

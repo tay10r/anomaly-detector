@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14.7)
 
-project(loader
-  DESCRIPTION "A program for pre-processing images before being analyzed for anomaly detection."
+project(ad_pipeline
+  DESCRIPTION "A program for processing images for the purpose of anomaly detection."
   LANGUAGES C CXX
   VERSION 1.0)
 
@@ -12,43 +12,53 @@ find_package(Protobuf CONFIG REQUIRED)
 # Will either:
 #   - Read from ZMQ publisher and tile the image, optionally add the UV component, and send it to the requester
 #   - Read from a image folder and send it to the requester
-add_executable(loader
+add_executable(ad_pipeline
   main.cpp
-  source.h
-  source.cpp
+  node.h
+  node.cpp
   image.h
   image.cpp
   zmq_source.h
   zmq_source.cpp
   directory_source.h
   directory_source.cpp
+  directory_sink.h
+  directory_sink.cpp
+  tile_filter.h
+  tile_filter.cpp
+  normalize_filter.h
+  normalize_filter.cpp
   exception.h
   deps/stb_image.h
   deps/stb_image.c
   deps/stb_image_write.h
   deps/stb_image_write.c)
 
-#file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/loader")
+#file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/filter")
 
-protobuf_generate(TARGET loader
+protobuf_generate(TARGET ad_pipeline
   PROTOS
-    proto/loader/config.proto
-    proto/loader/directory_config.proto
+    proto/pipeline/config.proto
+    proto/pipeline/directory_source_config.proto
+    proto/pipeline/directory_sink_config.proto
+    proto/pipeline/tile_filter_config.proto
+    proto/pipeline/normalize_filter_config.proto
+    proto/pipeline/padding_mode.proto
   IMPORT_DIRS
     "${CMAKE_CURRENT_SOURCE_DIR}/proto")
 
-target_link_libraries(loader
+target_link_libraries(ad_pipeline
   PUBLIC
     spdlog::spdlog
     libzmq
     libzmq-static
     protobuf::libprotobuf)
 
-target_include_directories(loader
+target_include_directories(ad_pipeline
   PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/deps"
     "${CMAKE_CURRENT_BINARY_DIR}")
 
-set_target_properties(loader
+set_target_properties(ad_pipeline
   PROPERTIES
-    OUTPUT_NAME main)
+    OUTPUT_NAME ad-pipeline)
