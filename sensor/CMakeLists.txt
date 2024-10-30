@@ -19,3 +19,5 @@ target_link_libraries(ad-sensor
     libzmq-static
     spdlog::spdlog
     cxxopts::cxxopts)
+
+target_compile_features(ad-sensor PRIVATE cxx_std_20)

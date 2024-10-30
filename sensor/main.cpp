@@ -48,6 +48,8 @@ struct Options final {
     device_index = result["device"].as<int>();
     bind_address = result["bind"].as<std::string>();
     interval = result["interval"].as<float>();
+    width = result["width"].as<int>();
+    height = result["height"].as<int>();
     help = result["help"].as<bool>();
     if (help) {
       std::cout << options.help();
