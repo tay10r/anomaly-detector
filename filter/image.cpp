@@ -3,6 +3,8 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
+#include <cstdlib>
+
 Image::Image(const uint32_t w, const uint32_t h) noexcept : data_(static_cast<uint8_t*>(std::malloc(w * h * 3))) {
   if (data_) {
     width_ = w;

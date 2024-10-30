@@ -34,8 +34,6 @@ add_executable(ad_pipeline
   deps/stb_image_write.h
   deps/stb_image_write.c)
 
-#file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/filter")
-
 protobuf_generate(TARGET ad_pipeline
   PROTOS
     proto/pipeline/config.proto
@@ -54,6 +52,8 @@ target_link_libraries(ad_pipeline
     libzmq
     libzmq-static
     protobuf::libprotobuf)
+
+target_compile_features(ad_pipeline PRIVATE cxx_std_20)
 
 target_include_directories(ad_pipeline
   PRIVATE
