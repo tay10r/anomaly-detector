@@ -3,7 +3,6 @@
 #include <pybind11/stl.h>
 
 #include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <random>
 #include <sstream>
@@ -17,25 +16,29 @@ namespace {
 
 namespace py = pybind11;
 
+template <typename Scalar>
+struct Rect final {
+  Scalar x{};
+  Scalar y{};
+  Scalar w{};
+  Scalar h{};
+};
+
 class Transform final {
  public:
   Transform(int seed) : rng_(seed) {}
 
-  void SetNoiseLevel(std::uint8_t min_value, std::uint8_t max_value) {
+  void SetNoiseRange(std::uint8_t min_value, std::uint8_t max_value) {
     noise_min_ = min_value;
     noise_max_ = max_value;
   }
 
-  void SetInfillSizes(const std::size_t x_min, const std::size_t y_min, const std::size_t x_max,
-                      const std::size_t y_max) {
-    x_min_ = x_min;
-    y_min_ = y_min;
-    x_max_ = x_max;
-    y_max_ = y_max;
+  void SetInfillRect(const py::ssize_t x, const py::ssize_t y, const py::ssize_t w, const py::ssize_t h) {
+    infill_rect_ = Rect<py::ssize_t>{x, y, w, h};
   }
 
-  [[nodiscard]] auto Call(py::array_t<std::uint8_t, py::array::forcecast | py::array::c_style>& input)
-      -> py::array_t<std::uint8_t> {
+  [[nodiscard]] auto Call(const py::array_t<std::uint8_t, py::array::forcecast | py::array::c_style>& input)
+      -> py::tuple {
     const auto* shape = input.shape();
 
     if (input.ndim() != 3) {
@@ -46,60 +49,97 @@ class Transform final {
     const auto h = shape[1];
     const auto w = shape[2];
 
-    py::array_t<std::uint8_t, py::array::c_style | py::array::forcecast> out(
-        std::vector<pybind11::ssize_t>{num_channels, h, w});
+    py::array_t<std::uint8_t, py::array::c_style | py::array::forcecast> target(
+        std::vector<py::ssize_t>{num_channels, infill_rect_.w, infill_rect_.h});
 
-    std::uniform_int_distribution<std::size_t> x_dist(x_min_, x_max_);
-    std::uniform_int_distribution<std::size_t> y_dist(y_min_, y_max_);
+    py::array_t<std::uint8_t, py::array::c_style | py::array::forcecast> img(
+        std::vector<py::ssize_t>{num_channels, h, w});
 
-    const auto x_size = x_dist(rng_);
-    const auto y_size = y_dist(rng_);
+    std::uniform_int_distribution<int> noise_level_dist(noise_min_, noise_max_);
+    const auto noise_level = noise_level_dist(rng_);
+    std::uniform_int_distribution<int> noise_dist(-noise_level, noise_level);
 
-    if ((x_size > w) || (y_size > h)) {
-      throw std::runtime_error("Region size is larger than image.");
-    }
-
-    std::uniform_int_distribution<std::size_t> x_offset_dist(0, w - x_size);
-    std::uniform_int_distribution<std::size_t> y_offset_dist(0, h - y_size);
-
-    const auto x_offset = x_offset_dist(rng_);
-    const auto y_offset = y_offset_dist(rng_);
-
-    const auto x_end = x_offset + x_size;
-    const auto y_end = y_offset + y_size;
-
-    std::uniform_int_distribution<int> noise_dist(noise_min_, noise_max_);
-
+    std::uniform_int_distribution<int> seed_dist(-1000, 1000);
+    const auto call_seed{seed_dist(rng_)};
     for (auto c = 0; c < num_channels; c++) {
-      auto* plane = out.mutable_data(c);
+      auto* plane = img.mutable_data(c);
 
       const auto* in_ptr = input.data(c);
 
+#pragma omp parallel for
       for (auto y = 0; y < h; y++) {
+        std::seed_seq seed{y, c, call_seed};
+        std::minstd_rand rng(seed);
+        constexpr auto warmup{16};
+        for (auto i = 0; i < warmup; i++) {
+          (void)rng();
+        }
+
         for (auto x = 0; x < w; x++) {
-          const auto value = std::clamp(static_cast<int>(in_ptr[y * w + x]) + noise_dist(rng_), 0, 255);
+          const auto value = std::clamp(static_cast<int>(in_ptr[y * w + x]) + noise_dist(rng), 0, 255);
           plane[y * w + x] = static_cast<std::uint8_t>(value);
         }
       }
 
-      for (auto y = y_offset; y < y_end; y++) {
-        for (auto x = x_offset; x < x_end; x++) {
-          plane[y * w + x] = 0;
+      auto* target_plane = target.mutable_data(c);
+#pragma omp parallel for
+      for (auto y = 0; y < infill_rect_.h; y++) {
+        for (auto x = 0; x < infill_rect_.w; x++) {
+          const auto value = in_ptr[(infill_rect_.y + y) * w + (infill_rect_.x + x)];
+          target_plane[y * infill_rect_.w + x] = value;
+          plane[(infill_rect_.y + y) * w + (infill_rect_.x + x)] = 0;
         }
       }
     }
 
-    return out;
+    return py::make_tuple(img, target);
+  }
+
+  [[nodiscard]] auto Reconstruct(const py::array_t<std::uint8_t, py::array::forcecast | py::array::c_style>& input,
+                                 const py::array_t<std::uint8_t, py::array::forcecast | py::array::c_style>& infill)
+      -> py::array_t<std::uint8_t, py::array::forcecast | py::array::c_style> {
+    if ((input.ndim() != 3) || (infill.ndim() != 3)) {
+      throw std::runtime_error("Only 3 axis tensors are supported.");
+    }
+
+    if (infill.shape()[0] != input.shape()[0]) {
+      throw std::runtime_error("The number of channels for the image and infill must be the same.");
+    }
+
+    if ((infill.shape()[2] != infill_rect_.w) || (infill.shape()[1] != infill_rect_.h)) {
+      throw std::runtime_error("Infill size does not match transform settings.");
+    }
+
+    const auto num_channels = input.shape()[0];
+    const auto h = input.shape()[1];
+    const auto w = input.shape()[2];
+
+    py::array_t<std::uint8_t, py::array::forcecast | py::array::c_style> output(
+        std::vector<py::ssize_t>{num_channels, h, w});
+
+    for (auto c = 0; c < num_channels; c++) {
+      const auto* in_ptr = input.data(c);
+      const auto* infill_ptr = infill.data(c);
+      auto* out_ptr = output.mutable_data(c);
+      std::memcpy(out_ptr, in_ptr, w * h);
+      for (auto y = 0; y < infill_rect_.h; y++) {
+        auto* out_row = out_ptr + (infill_rect_.y + y) * w + infill_rect_.x;
+        const auto* infill_row = infill_ptr + y * infill_rect_.w;
+        std::memcpy(out_row, infill_row, infill_rect_.w);
+      }
+    }
+
+    return output;
   }
 
  private:
-  std::size_t x_min_{};
-  std::size_t y_min_{};
-  std::size_t x_max_{};
-  std::size_t y_max_{};
+  Rect<py::ssize_t> infill_rect_{};
+
   std::uint8_t noise_min_{};
+
   std::uint8_t noise_max_{};
-  std::mt19937 rng_;
+
+  std::minstd_rand rng_;
 };
 
 auto OpenImage(const char* path) -> py::array_t<std::uint8_t, py::array::c_style> {
@@ -168,13 +208,12 @@ void SavePng(const char* path, const py::array_t<std::uint8_t, py::array::forcec
 
 PYBIND11_MODULE(augmentation, m) {
   m.def("open_image", &OpenImage, py::arg("path"));
-
   m.def("save_png", &SavePng, py::arg("path"), py::arg("image"));
 
   py::class_<Transform>(m, "Transform")
       .def(py::init<int>(), py::arg("seed") = 0)
-      .def("set_infill_sizes", &Transform::SetInfillSizes, py::arg("x_min"), py::arg("y_min"), py::arg("x_max"),
-           py::arg("y_max"))
-      .def("set_noise_levels", &Transform::SetNoiseLevel, py::arg("min_value"), py::arg("max_value"))
-      .def("__call__", &Transform::Call, py::arg("input"));
+      .def("set_infill_rect", &Transform::SetInfillRect, py::arg("x"), py::arg("y"), py::arg("w"), py::arg("h"))
+      .def("set_noise_range", &Transform::SetNoiseRange, py::arg("min_value"), py::arg("max_value"))
+      .def("__call__", &Transform::Call, py::arg("input"))
+      .def("reconstruct", &Transform::Reconstruct, py::arg("img"), py::arg("infill"));
 }
