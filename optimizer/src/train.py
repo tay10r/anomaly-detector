@@ -11,7 +11,7 @@ import torchvision.transforms.v2 as transforms
 import zmq
 
 from src.loop import Loop
-from src.dataset import Dataset
+from src.dataset import Dataset, TestDataset
 from src.tasks.optimizer import Optimizer
 from src.tasks.evaluator import Evaluator
 from src.nn.registry import create_module
@@ -32,9 +32,9 @@ def get_transforms() -> nn.Module:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch-size', type=int, default=16, required=False)
-    parser.add_argument('--learning-rate', type=float, default=0.01, required=False)
-    parser.add_argument('--model', type=str, default='v2', required=False)
+    parser.add_argument('--batch-size', type=int, default=1, required=False)
+    parser.add_argument('--learning-rate', type=float, default=0.0001, required=False)
+    parser.add_argument('--model', type=str, default='v1_x1', required=False)
     args = parser.parse_args()
 
     if cuda.is_available():
@@ -50,9 +50,9 @@ def main():
     keep_going = True
     signal.signal(signal.SIGINT, on_signal)
     train_data = Dataset(root='data/train', transform=get_transforms())
-    test_data = Dataset(root='data/test', transform=get_transforms())
+    test_data = TestDataset(root='data/test', transform=get_transforms())
     train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True)#, num_workers=2)#, pin_memory=pin_memory, pin_memory_device=dev)
-    test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=True)#, num_workers=2)#, pin_memory=pin_memory, pin_memory_device=dev)
+    test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=False)#, num_workers=2)#, pin_memory=pin_memory, pin_memory_device=dev)
     module = create_module(args.model)
     module = module.to(dev)
     logger.info(f'Training data has {len(train_data)} samples.')

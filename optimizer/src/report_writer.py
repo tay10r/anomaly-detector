@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from io import BytesIO
 
-from torch import Tensor, concat
+import torch
+from torch import Tensor, concat, nn
 from torch.nn.functional import mse_loss
 from torchvision.utils import save_image, make_grid
 
@@ -59,7 +60,8 @@ class ZmqReportWriter(ReportWriter):
     def report(self, image: Tensor, result: Tensor, target: Tensor):
 
         if not self.first_image_sent:
-            example = concat((image, result, (result - target)**2), dim=0)
+            delta = (result - target)**2
+            example = concat((image, result, delta), dim=0)
             g = make_grid(example)
             buffer = BytesIO()
             save_image(g, buffer, 'png')
