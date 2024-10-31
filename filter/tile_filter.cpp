@@ -1,5 +1,7 @@
 #include "tile_filter.h"
 
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <optional>
 
@@ -38,14 +40,44 @@ class TileFilterImpl final : public TileFilter {
     output.offset[1] = current_state_->child_output.offset[1] + current_state_->y;
     output.size = current_state_->child_output.size;
 
-    current_state_->x += config_.stride_x();
+    auto valid_padding = config_.padding_mode() == pipeline::PaddingMode::VALID;
 
-    if (current_state_->x >= current_state_->child_output.image->Width()) {
-      current_state_->x = 0;
-      current_state_->y += config_.stride_y();
-      if (current_state_->y >= current_state_->child_output.image->Height()) {
-        current_state_.reset();
+    auto row_complete{false};
+
+    if (valid_padding) {
+      const auto max_x{current_state_->x + config_.width()};
+      row_complete = (max_x + config_.stride_x()) > current_state_->child_output.image->Width();
+      const auto remaining{current_state_->child_output.image->Width() - max_x};
+      if (row_complete && (remaining > 0)) {
+        SPDLOG_WARN("Unable to tile last {} pixels in row.", remaining);
       }
+    } else {
+      row_complete = (current_state_->x + config_.stride_x()) >= current_state_->child_output.image->Width();
+    }
+
+    if (row_complete) {
+      current_state_->x = 0;
+
+      auto frame_complete{false};
+
+      if (valid_padding) {
+        const auto max_y{current_state_->y + config_.height()};
+        frame_complete = (max_y + config_.stride_y()) > current_state_->child_output.image->Height();
+        const auto remaining = current_state_->child_output.image->Height() - max_y;
+        if (frame_complete && (remaining > 0)) {
+          SPDLOG_WARN("Unable to tile last {} pixel rows in frame.", remaining);
+        }
+      } else {
+        frame_complete = (current_state_->y + config_.stride_y()) >= current_state_->child_output.image->Height();
+      }
+
+      if (frame_complete) {
+        current_state_.reset();
+      } else {
+        current_state_->y += config_.stride_y();
+      }
+    } else {
+      current_state_->x += config_.stride_x();
     }
 
     return output;

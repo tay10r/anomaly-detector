@@ -5,12 +5,17 @@ package pipeline;
 enum PaddingMode
 {
   /**
+   * Avoid conditions that would require padding.
+   */
+  VALID = 0;
+
+  /**
    * Pad with values of zero.
    */
-  ZEROS = 0;
+  ZEROS = 1;
 
   /**
    * Pad with the closest pixel value.
    */
-  REPLICATE = 1;
+  REPLICATE = 2;
 }
