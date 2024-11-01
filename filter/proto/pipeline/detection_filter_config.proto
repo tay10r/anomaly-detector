@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package pipeline;
+
+message DetectionFilterConfig
+{
+  string model = 1;
+  uint32 infill_x = 2;
+  uint32 infill_y = 3;
+  uint32 infill_width = 4;
+  uint64 infill_height = 5;
+}

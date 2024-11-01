@@ -6,11 +6,14 @@
 
 #include <cstddef>
 #include <fstream>
+#include <opencv2/core/utils/logger.hpp>
 #include <string>
 
+#include "detection_filter.h"
 #include "directory_sink.h"
 #include "directory_source.h"
 #include "exception.h"
+#include "frame_builder.h"
 #include "normalize_filter.h"
 #include "tile_filter.h"
 #include "zmq_source.h"
@@ -48,6 +51,10 @@ auto Node::CreatePipeline(void* zmq_context, const char* config_path) -> std::un
     throw Exception(std::string(status.message()));
   }
 
+  if (!config.enable_cv_logging()) {
+    cv::utils::logging::setLogLevel(cv::utils::logging::LOG_LEVEL_SILENT);
+  }
+
   std::unique_ptr<Node> root{new NullNode()};
 
   for (const auto& node_config : config.pipeline()) {
@@ -72,6 +79,14 @@ auto Node::CreatePipeline(void* zmq_context, const char* config_path) -> std::un
       case pipeline::NodeConfig::kNormalizeFilter:
         SPDLOG_INFO("Building normalization filter node.");
         root = NormalizeFilter::Create(std::move(root), node_config.normalize_filter());
+        break;
+      case pipeline::NodeConfig::kDetectionFilter:
+        SPDLOG_INFO("Building detection filter node.");
+        root = DetectionFilter::Create(std::move(root), node_config.detection_filter());
+        break;
+      case pipeline::NodeConfig::kFrameBuilder:
+        SPDLOG_INFO("Building frame builder node.");
+        root = FrameBuilder::Create(std::move(root), node_config.frame_builder());
         break;
       case pipeline::NodeConfig::ROOT_NOT_SET:
         SPDLOG_WARN("No source type set. Ignoring node.");

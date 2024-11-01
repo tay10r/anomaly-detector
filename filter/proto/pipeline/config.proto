@@ -7,6 +7,8 @@ import "pipeline/directory_sink_config.proto";
 import "pipeline/tile_filter_config.proto";
 import "pipeline/normalize_filter_config.proto";
 import "pipeline/zmq_source_config.proto";
+import "pipeline/detection_filter_config.proto";
+import "pipeline/frame_builder_config.proto";
 
 message NodeConfig
 {
@@ -16,10 +18,14 @@ message NodeConfig
     TileFilterConfig tile_filter = 3;
     NormalizeFilterConfig normalize_filter = 4;
     ZmqSourceConfig zmq_source = 5;
+    DetectionFilterConfig detection_filter = 6;
+    FrameBuilderConfig frame_builder = 7;
   }
 }
 
 message Config
 {
   repeated NodeConfig pipeline = 1;
+
+  bool enable_cv_logging = 2;
 }
