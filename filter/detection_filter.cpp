@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <array>
 #include <opencv2/dnn.hpp>
 
 #include "exception.h"
@@ -101,14 +102,14 @@ class DetectionFilterImpl final : public DetectionFilter {
     const auto* input = child_output.image->Data();
     const auto input_w = child_output.image->Width();
 
-#pragma omp parallel for
     for (auto i = 0; i < num_pixels; i++) {
       const auto x = i % output.cols;
       const auto y = i / output.cols;
 
-      const auto predicted_r = output.at<float>(static_cast<int>(i * 3 + 0)) * 255.0F;
-      const auto predicted_g = output.at<float>(static_cast<int>(i * 3 + 1)) * 255.0F;
-      const auto predicted_b = output.at<float>(static_cast<int>(i * 3 + 2)) * 255.0F;
+      const auto predicted = output.at<std::array<float, 3>>(i);
+      const auto predicted_r = predicted[0] * 255.0F;
+      const auto predicted_g = predicted[1] * 255.0F;
+      const auto predicted_b = predicted[2] * 255.0F;
 
       const auto in_offset = ((config_.infill_y() + y) * input_w + (config_.infill_x() + x)) * 3;
 

@@ -63,7 +63,7 @@ def main():
 
     transform = Transform()
     transform.set_infill_rect(x=40, y=40, w=40, h=40)
-    transform.set_noise_range(0, 16)
+    transform.set_noise_range(0, 0)
 
     train_data = Dataset(root='data/train', transform=transform)
     test_data = Dataset(root='data/test', transform=transform)

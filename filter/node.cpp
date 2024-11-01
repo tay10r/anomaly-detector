@@ -16,6 +16,7 @@
 #include "frame_builder.h"
 #include "normalize_filter.h"
 #include "tile_filter.h"
+#include "zmq_sink.h"
 #include "zmq_source.h"
 
 namespace {
@@ -87,6 +88,10 @@ auto Node::CreatePipeline(void* zmq_context, const char* config_path) -> std::un
       case pipeline::NodeConfig::kFrameBuilder:
         SPDLOG_INFO("Building frame builder node.");
         root = FrameBuilder::Create(std::move(root), node_config.frame_builder());
+        break;
+      case pipeline::NodeConfig::kZmqSink:
+        SPDLOG_INFO("Building ZMQ sink.");
+        root = ZmqSink::Create(std::move(root), zmq_context, node_config.zmq_sink());
         break;
       case pipeline::NodeConfig::ROOT_NOT_SET:
         SPDLOG_WARN("No source type set. Ignoring node.");

@@ -12,7 +12,7 @@ class _Block(nn.Module):
     def forward(self, x):
         x = self.batch_norm(self.conv(x))
         if self.relu:
-            return F.relu(x)
+            return F.leaky_relu(x)
         else:
             return x
 
@@ -33,21 +33,21 @@ class Network(nn.Module):
         self.e3 = nn.Sequential(
             _Block(n, 32, 32, kernel_size=7),
             _Block(n, 32, 64, kernel_size=7),
-            _Block(n, 64, 128, kernel_size=3)
+            _Block(n, 64, 64, kernel_size=3)
         )
         self.e4 = nn.Sequential( # 54
             _Block(n, 32, 32, kernel_size=3),
             _Block(n, 32, 32, kernel_size=3),
             _Block(n, 32, 64, kernel_size=3),
             _Block(n, 64, 64, kernel_size=3),
-            _Block(n, 64, 128, kernel_size=3),
-            _Block(n, 128, 128, kernel_size=3),
-            _Block(n, 128, 128, kernel_size=3)
+            _Block(n, 64, 64, kernel_size=3),
+            _Block(n, 64, 64, kernel_size=3),
+            _Block(n, 64, 64, kernel_size=3)
         )
         self.ef = nn.Sequential(
-            _Block(n, 256, 256, kernel_size=1),
-            _Block(n, 256, 128, kernel_size=1),
+            _Block(n, 128, 128, kernel_size=1),
             _Block(n, 128, 64, kernel_size=1),
+            _Block(n, 64, 64, kernel_size=1),
             _Block(n, 64, 16, kernel_size=1),
             _Block(n=1, in_channels=16*n, out_channels=3, kernel_size=1, relu=False)
         )

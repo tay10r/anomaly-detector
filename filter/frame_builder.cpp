@@ -1,5 +1,8 @@
 #include "frame_builder.h"
 
+#include <optional>
+#include <vector>
+
 #include <cstring>
 
 namespace {
